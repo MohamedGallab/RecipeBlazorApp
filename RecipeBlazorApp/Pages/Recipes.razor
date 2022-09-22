@@ -1,0 +1,37 @@
+﻿@page "/recipes"
+@inject HttpClient Http
+@using RecipeBlazorApp.Models
+
+<PageTitle>Recipes</PageTitle>
+
+<h1>Recipes</h1>
+
+@if (forecasts == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    
+}
+
+@code {
+    private WeatherForecast[]? forecasts;
+    private List<Recipe>? recipes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        recipes = await Http.GetFromJsonAsync<List<Recipe>>("recipes");
+    }
+
+    public class WeatherForecast
+    {
+        public DateTime Date { get; set; }
+
+        public int TemperatureC { get; set; }
+
+        public string? Summary { get; set; }
+
+        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    }
+}
