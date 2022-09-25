@@ -1,4 +1,5 @@
 ﻿@page "/categories"
+@using RecipeBlazorApp.Components
 @inject HttpClient Http
 
 <PageTitle>Categories</PageTitle>
@@ -14,40 +15,25 @@ else
 	<div class="row row-cols-auto justify-content-center">
 		@foreach (var category in categories)
 		{
-			<div class="card text-center m-1">
-				<div class="card-body">
-					<h5 class="card-title">@category</h5>
-					<div class="btn-group">
-						<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target=@("#editCategoryModal" + category.Replace(" ", string.Empty))>
-							<i class="oi oi-pencil"></i>
-						</button>
-						<button class="btn btn-danger" data-bs-toggle="modal" data-bs-target=@("#deleteCategoryModal" + category.Replace(" ", string.Empty))>
-							<i class="oi oi-trash"></i>
-						</button>
-					</div>
-				</div>
-
-				@* Delete Category Modal *@
-				<div class="modal fade" id=@("#deleteCategoryModal" + category.Replace(" ", string.Empty)) tabindex="-1" aria-labelledby="deleteCategoryModalLabel" aria-hidden="true">
-					<div class="modal-dialog">
-						<div class="modal-content">
-							<EditForm>
-								<DataAnnotationsValidator />
-								<ValidationSummary />
-
-							</EditForm>
-						</div>
-					</div>
-				</div>
-			</div>
+			<CategoryCard Category=@category />
 		}
 	</div>
+	<Modal @ref="modal">
+		<Title>This is a <em>Title!</em></Title>
+		<Body>
+
+		</Body>
+		<Footer>
+			<button type="button" class="btn btn-primary">Save changes</button>
+			<button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => modal?.Close()">Close</button>
+		</Footer>
+	</Modal>
 }
 
-@code {
-	private string exampleModel;
-	private List<string>? categories;
 
+@code {
+	private List<string>? categories;
+	private Modal? modal;
 	protected override async Task OnInitializedAsync()
 	{
 		//categories = await Http.GetFromJsonAsync<List<string>>("categories");

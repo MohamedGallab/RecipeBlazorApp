@@ -1,0 +1,18 @@
+﻿<div class="card text-center m-1">
+	<div class="card-body">
+		<h5 class="card-title">@Category</h5>
+		<div class="btn-group">
+			<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target=@("#editCategoryModal" + Category.Replace(" ", string.Empty))>
+				<i class="oi oi-pencil"></i>
+			</button>
+			<button class="btn btn-danger" data-bs-toggle="modal" data-bs-target=@("#deleteCategoryModal" + Category.Replace(" ", string.Empty))>
+				<i class="oi oi-trash"></i>
+			</button>
+		</div>
+	</div>
+</div>
+
+@code {
+	[Parameter]
+	public string Category { get; set; } = string.Empty;
+}
