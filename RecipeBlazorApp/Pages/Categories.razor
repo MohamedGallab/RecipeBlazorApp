@@ -1,5 +1,6 @@
 ﻿@page "/categories"
 @using RecipeBlazorApp.Components
+@using RecipeBlazorApp.Models
 @inject HttpClient Http
 
 <PageTitle>Categories</PageTitle>
@@ -15,46 +16,117 @@ else
 	<div class="row row-cols-auto justify-content-center">
 		@foreach (var category in categories)
 		{
-			<CategoryCard Category=@category OnCategoryDeleteClick=ShowDeleteModal />
+			<CategoryCard Category=@category OnCategoryDeleteClick="ShowDeleteModal" OnCategoryEditClick="ShowEditModal" />
 		}
 	</div>
-	<Modal @ref="deleteModal">
-		<Title>Are you sure you want to delete this category?</Title>
-		<Body>
-			<dl class="row">
-				<dt>
-					Category
-				</dt>
-				<dd>
-					@deleteModalCategory
-				</dd>
-			</dl>
-		</Body>
-		<Footer>
-			<button type="button" class="btn btn-primary">Delete Category</button>
-			<button type="button" class="btn btn-secondary" @onclick="deleteModal.Close">Close</button>
-		</Footer>
-	</Modal>
+
+	<EditForm Model="@deleteCategoryModel" OnValidSubmit="@DeleteCategoryAsync">
+		<DataAnnotationsValidator />
+		<ValidationSummary />
+		<Modal @ref="deleteModal">
+			<Title>Are you sure you want to delete this category?</Title>
+			<Body>
+				<dl class="row">
+					<dt>
+						Category
+					</dt>
+					<dd>
+						@deleteCategoryModel.Name
+					</dd>
+				</dl>
+			</Body>
+			<Footer>
+				<button type="submit" class="btn btn-primary">Delete Category</button>
+				<button type="button" class="btn btn-secondary" @onclick="deleteModal.Close">Close</button>
+			</Footer>
+		</Modal>
+	</EditForm>
+
+	<EditForm Model="@editCategoryModel" OnValidSubmit="@EditCategoryAsync">
+		<DataAnnotationsValidator />
+		<ValidationSummary />
+		<Modal @ref="editModal">
+			<Title>What is the new category name?</Title>
+			<Body>
+				<label>
+					New Category Name:
+					<InputText @bind-Value="editCategoryModel.NewCategory" />
+				</label>
+			</Body>
+			<Footer>
+				<button type="submit" class="btn btn-primary">Edit Category</button>
+				<button type="button" class="btn btn-secondary" @onclick="editModal.Close">Close</button>
+			</Footer>
+		</Modal>
+	</EditForm>
+
+	<EditForm Model="@createCategoryModel" OnValidSubmit="@CreateCategoryAsync">
+		<DataAnnotationsValidator />
+		<ValidationSummary />
+		<Modal @ref="createModal">
+			<Title>Are you sure you want to create this category?</Title>
+			<Body>
+				<label>
+					New Category Name:
+					<InputText @bind-Value="createCategoryModel.Name" />
+				</label>
+			</Body>
+			<Footer>
+				<button type="submit" class="btn btn-primary">Create Category</button>
+				<button type="button" class="btn btn-secondary" @onclick="createModal.Close">Close</button>
+			</Footer>
+		</Modal>
+	</EditForm>
 }
 
 
 @code {
 	private List<string>? categories;
 	private Modal? deleteModal;
-	private string deleteModalCategory = string.Empty;
+	private Modal? editModal;
+	private Modal? createModal;
+	private EditCategoryModel editCategoryModel = new();
+	private Category deleteCategoryModel = new();
+	private Category createCategoryModel = new();
+
 	protected override async Task OnInitializedAsync()
 	{
 		categories = await Http.GetFromJsonAsync<List<string>>("categories");
 	}
+
 	private void ShowDeleteModal(string categoryToBeDeleted)
 	{
-		deleteModalCategory = categoryToBeDeleted;
+		deleteCategoryModel.Name = categoryToBeDeleted;
 		deleteModal.Open();
 	}
 	private async Task DeleteCategoryAsync()
 	{
-		// delete category;
+		await Http.DeleteAsync($"categories/{deleteCategoryModel.Name}");
 		categories = await Http.GetFromJsonAsync<List<string>>("categories");
 		deleteModal.Close();
+	}
+
+	private void ShowEditModal(string categoryToBeEdited)
+	{
+		editCategoryModel.OldCategory = categoryToBeEdited;
+		editModal.Open();
+	}
+	private async Task EditCategoryAsync()
+	{
+		await Http.PutAsync($"categories/{editCategoryModel.OldCategory}?editedcategory={editCategoryModel.NewCategory}", null);
+		categories = await Http.GetFromJsonAsync<List<string>>("categories");
+		editModal.Close();
+	}
+
+	private void ShowCreateModal(string categoryToBeCreated)
+	{
+		createCategoryModel.Name = categoryToBeCreated;
+		createModal.Open();
+	}
+	private async Task CreateCategoryAsync()
+	{
+		await Http.PostAsync($"categories?category={createCategoryModel}", null);
+		categories = await Http.GetFromJsonAsync<List<string>>("categories");
+		createModal.Close();
 	}
 }
