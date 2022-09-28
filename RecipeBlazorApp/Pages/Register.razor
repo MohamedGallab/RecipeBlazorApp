@@ -2,7 +2,7 @@
 @using RecipeBlazorApp.Models
 @using System.Net.Http.Headers
 @inject HttpClient Http
-@inject IJSRuntime jsr
+@inject IJSRuntime jsRuntime
 
 <h3>Register</h3>
 
@@ -18,26 +18,23 @@
 		<InputText type="password" class="form-control" @bind-Value="user.Password" placeholder="Enter Password"></InputText>
 	</div>
 	<div class="mb-2 text-right">
-		<button class="btn btn-secondary" disabled="@isDisabled">register</button>
+		<button class="btn btn-secondary">register</button>
 	</div>
 </EditForm>
 
 @code {
 	User user = new User();
 	string message = string.Empty;
-	bool isDisabled = false;
 
 	private async Task OnValid()
 	{
-		isDisabled = true;
 		using (var registerResponse = await Http.PostAsJsonAsync<User>("/register", user, System.Threading.CancellationToken.None))
 		{
 			if (registerResponse.IsSuccessStatusCode)
 			{
 				JWToken jWToken = await registerResponse.Content.ReadFromJsonAsync<JWToken>();
-				isDisabled = false;
-				await jsr.InvokeAsync<string>("localStorage.setItem", "token", jWToken.Token);
-				await jsr.InvokeAsync<string>("localStorage.setItem", "refreshToken", jWToken.RefreshToken);
+				await jsRuntime.InvokeAsync<string>("localStorage.setItem", "token", jWToken.Token);
+				await jsRuntime.InvokeAsync<string>("localStorage.setItem", "refreshToken", jWToken.RefreshToken);
 				Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jWToken.Token);
 			}
 		}

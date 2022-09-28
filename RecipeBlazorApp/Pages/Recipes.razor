@@ -1,37 +1,214 @@
 ﻿@page "/recipes"
 @inject HttpClient Http
+@using RecipeBlazorApp.Components
 @using RecipeBlazorApp.Models
 
 <PageTitle>Recipes</PageTitle>
 
-<h1>Recipes</h1>
+<div class="container d-flex justify-content-between align-items-center my-4">
+	<h1>Recipes</h1>
+	<button type="button" class="btn btn-primary" @onclick="ShowCreateModal">
+		Add a Recipe
+	</button>
+</div>
 
-@if (forecasts == null)
+@if (recipes == null)
 {
-    <div class="spinner-border spinner-border-sm"></div>
+	<div class="d-flex justify-content-center">
+		<div class="spinner-border" role="status">
+			<span class="visually-hidden">Loading...</span>
+		</div>
+	</div>
 }
 else
 {
-    
+	foreach (var recipe in recipes)
+	{
+		<div class="card">
+			<div class="card-body">
+
+				<h5 class="card-title text-center" x-text="recipe.title">@recipe.Title</h5>
+
+				@foreach (var category in recipe.Categories)
+				{
+					<span class="badge bg-success mb-2 mx-1">@category</span>
+				}
+
+				<div class="accordion">
+
+					@* Ingredients *@
+					<div class="accordion-item">
+						<h2 class="accordion-header">
+							<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="@("#Ingredients" + recipe.Id)" aria-expanded="true" aria-controls="@("Ingredients" + recipe.Id)">
+								Ingredients
+							</button>
+						</h2>
+						<div x-data id=@("Ingredients" + recipe.Id) class="accordion-collapse collapse" aria-labelledby="panelsStayOpen-headingOne">
+							<div class="accordion-body">
+								<ul>
+									@foreach (var ingredient in recipe.Ingredients)
+									{
+										<li>@ingredient</li>
+									}
+								</ul>
+							</div>
+						</div>
+					</div>
+
+					@* Instructions *@
+					<div class="accordion-item">
+						<h2 class="accordion-header">
+							<button x-data class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="@("#Instructions" + recipe.Id)" aria-expanded="true" aria-controls="@("Instructions" + recipe.Id)">
+								Instructions
+							</button>
+						</h2>
+						<div x-data id="@("Instructions" + recipe.Id)" class="accordion-collapse collapse" aria-labelledby="panelsStayOpen-headingOne">
+							<div class="accordion-body">
+								<ul>
+									@foreach (var instruction in recipe.Instructions)
+									{
+										<li>@instruction</li>
+									}
+								</ul>
+							</div>
+						</div>
+					</div>
+
+				</div>
+
+				@* Buttons *@
+				<div class="text-center mt-3">
+					<div class="btn-group">
+						<button class="btn btn-primary" @onclick="@(() => ShowEditModal(recipe))">
+							<i class="bi bi-pencil-square"></i>
+						</button>
+						<button class="btn btn-danger" @onclick="@(() => ShowDeleteModal(recipe))">
+							<i class="bi bi-trash"></i>
+						</button>
+					</div>
+				</div>
+
+			</div>
+		</div>
+	}
+
+	<EditForm Model="@deleteRecipeModel" OnValidSubmit="@DeleteRecipeAsync">
+		<DataAnnotationsValidator />
+		<ValidationSummary />
+		<Modal @ref="deleteModal">
+			<Title>Are you sure you want to delete this category?</Title>
+			<Body>
+				<dl class="row">
+					<dt>
+						Category
+					</dt>
+					<dd>
+						@deleteRecipeModel.Title
+					</dd>
+				</dl>
+			</Body>
+			<Footer>
+				<button type="submit" class="btn btn-primary">Delete Category</button>
+				<button type="button" class="btn btn-secondary" @onclick="deleteModal.Close">Close</button>
+			</Footer>
+		</Modal>
+	</EditForm>
+
+	<EditForm Model="@editRecipeModel" OnValidSubmit="@EditRecipeAsync">
+		<DataAnnotationsValidator />
+		<ValidationSummary />
+		<Modal @ref="editModal">
+			<Title>What is the new category name?</Title>
+			<Body>
+				<div class="my-3 row">
+					<label for="editRecipeTitle" class="col-2 col-form-label">Title</label>
+					<div class="col-7">
+						<InputText class="form-control" @bind-Value="editRecipeModel.Title" />
+					</div>
+				</div>
+
+				<div class="my-3 row">
+					<label for="editRecipeIngredients" class="col-form-label col-2">Ingredients</label>
+					<div class="col-7">
+						<textarea class="form-control" x-model="recipe.ingredients" id="editRecipeIngredients" rows="5" placeholder="enter every ingredient on a separate line"></textarea>
+						
+					</div>
+				</div>
+
+				<div class="my-3 row">
+					<label for="editRecipeInstructions" class="col-form-label col-2">Instructions</label>
+					<div class="col-7">
+						<textarea class="form-control" x-model="recipe.instructions" id="editRecipeInstructions" rows="5" placeholder="enter every instruction on a separate line"></textarea>
+					</div>
+				</div>
+
+				<div class="my-3 row">
+					<label for="editRecipeCategories" class="col-form-label col-2 ">Categories</label>
+					<div class="col-7">
+						<template x-for="category in availablecategories">
+							<div>
+								<input :id="'category'+ category + recipe.id" type="checkbox" :value="category" x-model="recipe.categories">
+								<label :for="'category'+ category + recipe.id" x-text="category"></label>
+								<br />
+							</div>
+						</template>
+					</div>
+				</div>
+			</Body>
+			<Footer>
+				<button type="submit" class="btn btn-primary">Edit Category</button>
+				<button type="button" class="btn btn-secondary" @onclick="editModal.Close">Close</button>
+			</Footer>
+		</Modal>
+	</EditForm>
 }
 
 @code {
-    private WeatherForecast[]? forecasts;
-    private List<Recipe>? recipes;
+	private List<Recipe>? recipes;
+	private Modal? deleteModal;
+	private Modal? editModal;
+	private Modal? createModal;
+	private Recipe editRecipeModel = new();
+	private Recipe deleteRecipeModel = new();
+	private Recipe createRecipeModel = new();
 
-    protected override async Task OnInitializedAsync()
-    {
-        recipes = await Http.GetFromJsonAsync<List<Recipe>>("recipes");
-    }
+	protected override async Task OnInitializedAsync()
+	{
+		recipes = await Http.GetFromJsonAsync<List<Recipe>>("recipes");
+	}
 
-    public class WeatherForecast
-    {
-        public DateTime Date { get; set; }
+	private void ShowDeleteModal(Recipe recipeToBeDeleted)
+	{
+		deleteRecipeModel = recipeToBeDeleted;
+		deleteModal.Open();
+	}
+	private async Task DeleteRecipeAsync()
+	{
+		await Http.DeleteAsync($"recipes/{deleteRecipeModel.Id}");
+		recipes = await Http.GetFromJsonAsync<List<Recipe>>("recipes");
+		deleteModal.Close();
+	}
 
-        public int TemperatureC { get; set; }
+	private void ShowEditModal(Recipe recipeToBeEdited)
+	{
+		editRecipeModel = recipeToBeEdited;
+		editModal.Open();
+	}
+	private async Task EditRecipeAsync()
+	{
+		await Http.PutAsJsonAsync($"recipes/{editRecipeModel.Id}", editRecipeModel);
+		recipes = await Http.GetFromJsonAsync<List<Recipe>>("recipes");
+		editModal.Close();
+	}
 
-        public string? Summary { get; set; }
-
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-    }
+	private void ShowCreateModal()
+	{
+		createModal.Open();
+	}
+	private async Task CreateRecipeAsync()
+	{
+		await Http.PostAsJsonAsync($"recipes", editRecipeModel);
+		recipes = await Http.GetFromJsonAsync<List<Recipe>>("recipes");
+		createModal.Close();
+	}
 }
